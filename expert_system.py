@@ -67,7 +67,7 @@ def fire(certainty, f, names):
 
 def rule_common_cold(f):
     S = ("Runny Nose", "Sneezing", "Sore Throat", "Nasal Congestion", "Watery Eyes", "Mild Headache") + COUGH + (("Fever",) if f.mild_fever() else ())   # only a MILD fever fits a cold
-    if f.count(*S) < 2:
+    if not f.has(*S):
         return NONE
     elif f.lasting(*S, days=21):                       # a cold clears within ~2 weeks
         return fire(20, f, S)
@@ -77,15 +77,17 @@ def rule_common_cold(f):
         return fire(75, f, S)
     elif f.count(*S) >= 3:
         return fire(55, f, S)
-    else:
+    elif f.count(*S) >= 2:
         return fire(35, f, S)
+    else:
+        return fire(15, f, S)                          # only one cold symptom reported
 
 
 def rule_flu(f):
     S = ("Body Ache", "Headache", "Chills", "Fatigue", "Sore Throat", "Sweating", "Muscle Pain", "Mild Fatigue", "Weakness") + FEVER + COUGH
     fever, aches = f.has(*FEVER), f.has(*ACHES)
     if f.lasting(*S, days=14):                         # flu is an acute illness
-        return fire(30, f, S) if f.count(*S) >= 3 else NONE
+        return fire(30, f, S) if f.count(*S) >= 3 else fire(15, f, S)
     elif fever and aches and f.has("Chills") and f.has(*TIRED, *COUGH, *THROAT):
         return fire(90, f, S)
     elif fever and aches and f.has("Chills", *TIRED, *COUGH, *THROAT, *HEADACHE):
@@ -98,6 +100,8 @@ def rule_flu(f):
         return fire(40, f, S)
     elif f.has("Chills") and f.count(*S) >= 3:         # chills + several flu symptoms, even without a fever entry
         return fire(45, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -119,6 +123,8 @@ def rule_covid19(f):
         return fire(35, f, S)
     elif f.count(*S) >= 3:
         return fire(30, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -126,7 +132,7 @@ def rule_covid19(f):
 def rule_strep_throat(f):
     S = ("Sore Throat", "Difficulty Swallowing", "Red Spots on Palate", "Swollen Lymph Nodes", "Headache", "Nausea", "Loss of Appetite") + FEVER
     if not f.has("Sore Throat"):                       # without a sore throat only the specific signs count
-        return fire(40, f, S) if f.has("Red Spots on Palate", "Swollen Lymph Nodes") and f.count(*S) >= 3 else NONE
+        return fire(40, f, S) if f.has("Red Spots on Palate", "Swollen Lymph Nodes") and f.count(*S) >= 3 else fire(15, f, S)
     elif f.has("Red Spots on Palate"):
         return fire(90, f, S)
     elif f.has(*FEVER) and f.has("Swollen Lymph Nodes", "Difficulty Swallowing") and not f.has(*COUGH, "Runny Nose"):
@@ -137,6 +143,8 @@ def rule_strep_throat(f):
         return fire(50, f, S)
     elif f.has(*FEVER):
         return fire(35, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -158,6 +166,8 @@ def rule_pneumonia(f):
         return fire(50, f, S)
     elif f.count(*S) >= 3:
         return fire(35, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -176,6 +186,8 @@ def rule_asthma(f):
         return fire(45, f, S)
     elif f.count(*S) >= 3:
         return fire(35, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -194,6 +206,8 @@ def rule_bronchitis(f):
         return fire(55, f, S)
     elif f.count(*S) >= 3:
         return fire(40, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -201,8 +215,10 @@ def rule_bronchitis(f):
 def rule_allergic_rhinitis(f):
     S = ("Itchy Eyes", "Sneezing", "Watery Eyes", "Runny Nose", "Nasal Congestion", "Itchy Throat", "Postnasal Drip", "Mild Fatigue")
     fever = f.has(*FEVER)
-    if f.count(*S) < 2:
+    if not f.has(*S):
         return NONE
+    elif f.count(*S) < 2:
+        return fire(15, f, S)
     elif fever:                                        # allergies do not cause fever
         return fire(25, f, S)
     elif f.has("Sneezing") and f.has("Itchy Eyes", "Watery Eyes") and f.has("Runny Nose", "Nasal Congestion"):
@@ -231,6 +247,8 @@ def rule_migraine(f):
         return fire(55, f, S)
     elif f.has(*HEADACHE) and f.has(*NAUSEA):
         return fire(40, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -247,6 +265,8 @@ def rule_type2_diabetes(f):
         return fire(60, f, S)
     elif f.has("Increased Thirst", "Slow Healing Wounds") and f.count(*S) >= 2:
         return fire(40, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -263,6 +283,8 @@ def rule_hypertension(f):
         return fire(50, f, S)
     elif f.has("Occasional Headaches") and f.count(*S) >= 2:
         return fire(35, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -270,7 +292,7 @@ def rule_hypertension(f):
 def rule_gastroenteritis(f):
     S = ("Diarrhea", "Vomiting", "Abdominal Cramps", "Nausea", "Fever", "Loss of Appetite", "Stomach Pain", "Dehydration")
     if f.lasting("Diarrhea", days=14):                 # diarrhea >2 weeks is not a stomach flu
-        return fire(30, f, S) if f.count(*S) >= 2 else NONE
+        return fire(30, f, S) if f.count(*S) >= 2 else fire(15, f, S)
     elif f.has("Diarrhea") and f.has("Vomiting") and f.has(*BELLY, "Nausea", "Dehydration", *FEVER):
         return fire(95, f, S)
     elif f.has("Diarrhea") and f.has("Vomiting"):
@@ -283,6 +305,8 @@ def rule_gastroenteritis(f):
         return fire(50, f, S)
     elif f.count(*S) >= 3:
         return fire(40, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -301,6 +325,8 @@ def rule_uti(f):
         return fire(50, f, S)
     elif f.count(*S) >= 3:
         return fire(45, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -319,6 +345,8 @@ def rule_gerd(f):
         return fire(50, f, S)
     elif f.count(*S) >= 3:
         return fire(40, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -335,6 +363,8 @@ def rule_anemia(f):
         return fire(50, f, S)
     elif f.count(*S) >= 3:
         return fire(40, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -354,6 +384,8 @@ def rule_depression(f):
         return fire(65, f, S)
     elif f.has("Persistent Sadness", "Loss of Interest", "Hopelessness") and f.count(*S) >= 2:
         return fire(45, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -370,6 +402,8 @@ def rule_anxiety(f):
         return fire(45, f, S)
     elif f.count(*S) >= 3:
         return fire(35, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -386,6 +420,8 @@ def rule_ibs(f):
         return fire(65, f, S)
     elif f.count(*S) >= 2:
         return fire(35, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -404,6 +440,8 @@ def rule_appendicitis(f):
         return fire(60, f, S)
     elif f.count(*S) >= 3:
         return fire(45, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -426,6 +464,8 @@ def rule_tuberculosis(f):
         return fire(50, f, S)
     elif f.count(*S) >= 3:
         return fire(35, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -444,6 +484,8 @@ def rule_malaria(f):
         return fire(45, f, S)
     elif f.count(*S) >= 3:
         return fire(35, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -463,6 +505,8 @@ def rule_dengue(f):
         return fire(55, f, S)
     elif f.count(*S) >= 3:
         return fire(40, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -483,6 +527,8 @@ def rule_sinusitis(f):
         return fire(55, f, S)
     elif f.count(*S) >= 3:
         return fire(40, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -502,6 +548,8 @@ def rule_stroke(f):
         return fire(50, f, S)
     elif f.has("Loss of Balance") and f.has("Vision Problems", "Confusion"):
         return fire(35, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
@@ -520,6 +568,8 @@ def rule_heart_attack(f):
         return fire(55, f, S)
     elif f.count(*S) >= 3:
         return fire(40, f, S)
+    elif f.has(*S):                                    # fallback: at least one symptom of this condition was reported
+        return fire(15, f, S)
     else:
         return NONE
 
